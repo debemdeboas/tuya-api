@@ -1,0 +1,10 @@
+[Unit]
+Description=Tuya API Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/www/tuya-api/tuya-api
+
+[Install]
+WantedBy=multi-user.target
