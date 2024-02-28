@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/www/tuya-api/tuya-api
+WorkingDirectory=/www/tuya-api
 
 [Install]
 WantedBy=multi-user.target
