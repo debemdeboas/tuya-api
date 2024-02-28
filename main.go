@@ -1,3 +1,14 @@
+// Package tuya-api is an http server for interacting with the Tuya Cloud API.
+//
+// It provides two endpoints:
+//
+//  1. /toggle?id=DEVICE_ID
+//     Toggles the LED on the device with the given DEVICE_ID.
+//
+//  2. /set?id=DEVICE_ID&code=CODE&value=VALUE
+//     Sets the value of the device with the given DEVICE_ID for the given CODE to the given VALUE.
+//
+// The server listens on port 8015.
 package main
 
 import (
@@ -5,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/handlers"
 	"github.com/joho/godotenv"
@@ -38,16 +48,47 @@ func setDeviceValue(id string, code string, value any) *device.PostDeviceCommand
 	return res
 }
 
+func getRequiredValue(name string, w http.ResponseWriter, r *http.Request) (val string, err error) {
+	val = r.URL.Query().Get(name)
+	if val == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("'" + name + "' is required\n"))
+		err = fmt.Errorf("'" + name + "' is required")
+	}
+	return
+}
+
+func getRequiredValues(w http.ResponseWriter, r *http.Request, names ...string) (vals []string, err error) {
+	vals = make([]string, len(names))
+	for i, name := range names {
+		vals[i], err = getRequiredValue(name, w, r)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func someEffortConvert(value string) any {
+	if b, err := strconv.ParseBool(value); err == nil {
+		return b
+	} else if i, err := strconv.Atoi(value); err == nil {
+		return i
+	} else if f, err := strconv.ParseFloat(value, 64); err == nil {
+		return f
+	} else {
+		return value
+	}
+}
+
 func main() {
 	godotenv.Load()
 
 	config.SetEnv(common.URLUS, os.Getenv("ACCESS_ID"), os.Getenv("ACCESS_KEY"))
 
 	http.HandleFunc("/toggle", func(w http.ResponseWriter, r *http.Request) {
-		deviceId := r.URL.Query().Get("id")
-		if deviceId == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("id is required"))
+		deviceId, err := getRequiredValue("id", w, r)
+		if err != nil {
 			return
 		}
 		toggleLedOnOff(deviceId)
@@ -55,43 +96,21 @@ func main() {
 	})
 
 	http.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
-		deviceId := r.URL.Query().Get("id")
-		if deviceId == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("id is required"))
+		vals, err := getRequiredValues(w, r, "id", "code", "value")
+		if err != nil {
 			return
 		}
 
-		code := r.URL.Query().Get("code")
-		if code == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("code is required"))
-			return
-		}
+		deviceId, code, value := vals[0], vals[1], vals[2]
 
-		value := r.URL.Query().Get("value")
-		if value == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("value is required"))
-			return
+		res := setDeviceValue(deviceId, code, someEffortConvert(value))
+		if res.Success {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(res.Msg))
 		}
-
-		var val any
-		switch strings.ToLower(value) {
-		case "true", "false":
-			val, _ = strconv.ParseBool(value)
-		default:
-			tmp, err := strconv.Atoi(value)
-			if err != nil {
-				val = value
-			} else {
-				val = tmp
-			}
-		}
-
-		res := setDeviceValue(deviceId, code, val)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(res.Msg))
 	})
 
 	http.ListenAndServe(":8015", handlers.LoggingHandler(os.Stdout, http.DefaultServeMux))
