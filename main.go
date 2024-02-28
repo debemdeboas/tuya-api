@@ -24,6 +24,7 @@ import (
 	"github.com/tuya/tuya-cloud-sdk-go/config"
 )
 
+// Toggle the LED (`switch_led`) on the device with the given ID.
 func toggleLedOnOff(id string) {
 	dev, _ := device.GetDeviceStatus(id)
 
@@ -36,6 +37,7 @@ func toggleLedOnOff(id string) {
 	}
 }
 
+// Sets the value of the given code for the given device to the given value and returns the response.
 func setDeviceValue(id string, code string, value any) *device.PostDeviceCommandResponse {
 	cmds := []device.Command{{Code: code, Value: value}}
 	res, err := device.PostDeviceCommand(id, cmds)
@@ -48,6 +50,7 @@ func setDeviceValue(id string, code string, value any) *device.PostDeviceCommand
 	return res
 }
 
+// Returns the value of the given name from the given request's query string. If the value is missing, it writes a 400 response to the given writer and returns an error.
 func getRequiredValue(name string, w http.ResponseWriter, r *http.Request) (val string, err error) {
 	val = r.URL.Query().Get(name)
 	if val == "" {
@@ -58,6 +61,7 @@ func getRequiredValue(name string, w http.ResponseWriter, r *http.Request) (val 
 	return
 }
 
+// Returns the values of the given names from the given request's query string. If any of the values are missing, it writes a 400 response to the given writer and returns an error.
 func getRequiredValues(w http.ResponseWriter, r *http.Request, names ...string) (vals []string, err error) {
 	vals = make([]string, len(names))
 	for i, name := range names {
@@ -69,6 +73,7 @@ func getRequiredValues(w http.ResponseWriter, r *http.Request, names ...string) 
 	return
 }
 
+// Tries to convert the given string to a boolean, integer, or float64. If none of these conversions are successful, it returns the original string.
 func someEffortConvert(value string) any {
 	if b, err := strconv.ParseBool(value); err == nil {
 		return b
