@@ -36,5 +36,7 @@ You can run this API using Docker.
 > Alternatively, you could set the environment variables directly in the `docker run` command via the `-e` option.
 
 ```sh
-$ docker run -it --name tuya-api --rm -p 8015:8015 -v `pwd`/.env:/app/.env debemdeboas/tuya-api:latest
+$ docker run -it --name tuya-api --rm -p 8015:8015 \
+    -v `pwd`/.env:/app/.env \
+    ghcr.io/debemdeboas/tuya-api:latest
 ```
