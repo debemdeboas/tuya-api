@@ -25,3 +25,16 @@ Example `.env` file:
 ACCESS_ID=your_access_id
 ACCESS_KEY=your_access_key
 ```
+
+## Docker
+
+You can run this API using Docker.
+
+> [!TIP]
+> This example uses a `.env` file in the current directory to set the environment variables.
+>
+> Alternatively, you could set the environment variables directly in the `docker run` command via the `-e` option.
+
+```sh
+$ docker run -it --name tuya-api --rm -p 8015:8015 -v `pwd`/.env:/app/.env debemdeboas/tuya-api:latest
+```
